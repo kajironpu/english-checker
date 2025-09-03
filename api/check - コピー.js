@@ -21,17 +21,15 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-const prompt = `
-以下の英文を評価し、JSON形式で返してください。
+        const prompt = `
+以下の英文を評価し、以下のJSON形式で返してください。
 {
   "corrected": "自然で文法的に正しい英文",
   "score": "100点満点のスコア（整数）",
-  "advice": "改善点のアドバイス（日本語で、丁寧に）。問題の意図も踏まえてください。"
+  "advice": "改善点のアドバイス（日本語で、丁寧に）"
 }
 
-${context ? context : ""}
-
-ユーザーの回答: "${text}"
+原文: "${text}"
 `;
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;

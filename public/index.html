@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>英文添削ツール</title>
+  <title>英作文・添削ツール</title>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -11,19 +11,18 @@
       margin: 0 auto;
       line-height: 1.6;
     }
-    h2 {
+    h2, h3 {
       color: #333;
     }
     textarea { 
       width: 100%; 
       height: 120px; 
-      margin-top: 10px; 
       padding: 10px;
       box-sizing: border-box;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 16px;
-      resize: vertical;
+      margin-top: 10px;
     }
     button { 
       margin-top: 10px; 
@@ -34,15 +33,9 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.2s;
     }
-    button:hover { 
-      background-color: #3367d6; 
-    }
-    button:disabled { 
-      background-color: #cccccc; 
-      cursor: not-allowed; 
-    }
+    button:hover { background-color: #3367d6; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
     .result { 
       margin-top: 20px; 
       padding: 15px;
@@ -50,31 +43,24 @@
       border-radius: 4px;
       border: 1px solid #e0e0e0;
     }
-    .loading { 
-      color: #666; 
-      font-style: italic; 
-    }
-    .error { 
-      color: #d93025; 
-      font-weight: bold;
-    }
-    .score-high {
-      color: #0f9d58;
-    }
-    .score-medium {
-      color: #f4b400;
-    }
-    .score-low {
-      color: #db4437;
-    }
+    .loading { color: #666; font-style: italic; }
+    .error { color: #d93025; }
+    .score-high { color: #0f9d58; }
+    .score-medium { color: #f4b400; }
+    .score-low { color: #db4437; }
   </style>
 </head>
 <body>
-  <h2>英文添削ツール</h2>
-  <p>英文を入力して「添削する」ボタンを押してください。文法、自然さ、スコアを評価します。</p>
-  <textarea id="inputText" placeholder="例: I am go to school yesterday."></textarea>
+  <h2>英作文・添削ツール</h2>
+
+  <h3>問題</h3>
+  <p id="problem">問題を読み込んでいます...</p>
+
+  <h3>あなたの答え</h3>
+  <textarea id="userAnswer" placeholder="ここに英語で答えてください"></textarea>
   <br>
   <button id="checkBtn">添削する</button>
+  <button id="nextBtn" style="margin-left: 10px; background-color: #0f9d58;">次の問題</button>
 
   <div class="result">
     <p><strong>添削後:</strong> <span id="corrected"></span></p>
@@ -83,35 +69,47 @@
   </div>
 
   <script>
-    // DOM要素の取得
+    const problemEl = document.getElementById("problem");
+    const userAnswer = document.getElementById("userAnswer");
     const checkBtn = document.getElementById("checkBtn");
-    const inputText = document.getElementById("inputText");
+    const nextBtn = document.getElementById("nextBtn");
     const corrected = document.getElementById("corrected");
     const score = document.getElementById("score");
     const advice = document.getElementById("advice");
 
-    // 処理中フラグ（レートリミット対策）
-    let isProcessing = false;
+    let currentProblem = "";
 
-    // イベントリスナー
+    // 問題リスト（後でAPIにしてもOK）
+    const problems = [
+      "私は毎日公園で犬を散歩させます。",
+      "彼は昨夜遅くまで勉強していました。",
+      "この本はとても面白くて、一気に読み終えました。",
+      "もし雨が降ったら、ピクニックは中止になります。",
+      "将来、宇宙飛行士になって火星に行きたいです。"
+    ];
+
+    // ランダムな問題を表示
+    function showRandomProblem() {
+      currentProblem = problems[Math.floor(Math.random() * problems.length)];
+      problemEl.textContent = currentProblem;
+      userAnswer.value = "";
+      // 結果をリセット
+      corrected.textContent = "";
+      score.textContent = "";
+      advice.textContent = "";
+    }
+
+    // 最初に問題を表示
+    showRandomProblem();
+
+    // 添削処理
     checkBtn.addEventListener("click", async () => {
-      const text = inputText.value.trim();
-
-      // 入力チェック
-      if (!text) {
-        alert("英文を入力してください");
+      const answer = userAnswer.value.trim();
+      if (!answer) {
+        alert("あなたの答えを入力してください");
         return;
       }
 
-      // 処理中ならブロック（無料枠: Gemini 2.5 Flash-Lite は RPM=15）
-      if (isProcessing) {
-        advice.innerHTML = '<span class="error">前回のリクエストを処理中です。数秒後に再試行してください。</span>';
-        return;
-      }
-
-      // ローディング状態に
-      isProcessing = true;
-      checkBtn.disabled = true;
       corrected.innerHTML = '<span class="loading">添削中...</span>';
       score.textContent = "";
       advice.textContent = "";
@@ -119,47 +117,35 @@
       try {
         const res = await fetch("/api/check", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json" 
-          },
-          body: JSON.stringify({ text })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: answer,
+            context: `問題: "${currentProblem}" に答える形で書かれた英文です。`
+          })
         });
 
-        // レートリミットエラー (429) の特別処理
-        if (res.status === 429) {
-          throw new Error("利用回数の制限に達しました。数分後に再試行してください。");
-        }
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`エラー: ${res.status} ${res.statusText}\n${errorText}`);
-        }
+        if (!res.ok) throw new Error(`エラー: ${res.status}`);
 
         const data = await res.json();
-        
-        // APIレスポンスの表示
         corrected.textContent = data.corrected;
-
-        // スコアに色をつける
+        
         const scoreValue = data.score;
         let scoreClass = "score-medium";
         if (scoreValue >= 80) scoreClass = "score-high";
         else if (scoreValue < 60) scoreClass = "score-low";
         score.innerHTML = `<span class="${scoreClass}">${scoreValue} / 100</span>`;
-
+        
         advice.textContent = data.advice;
 
       } catch (error) {
-        console.error("Fetch error:", error);
+        console.error("Error:", error);
         corrected.innerHTML = '<span class="error">エラーが発生しました。</span>';
-        score.textContent = "";
         advice.innerHTML = `<span class="error">${error.message}</span>`;
-      } finally {
-        // 処理終了
-        isProcessing = false;
-        checkBtn.disabled = false;
       }
     });
+
+    // 次の問題
+    nextBtn.addEventListener("click", showRandomProblem);
   </script>
 </body>
 </html>
