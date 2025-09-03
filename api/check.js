@@ -1,3 +1,4 @@
+// api/check.js
 const fetch = require("node-fetch");
 
 module.exports = async function handler(req, res) {
@@ -36,15 +37,15 @@ module.exports = async function handler(req, res) {
       const errorText = await response.text();
       console.error("Gemini API Error:", errorText);
       return res.status(500).json({
-        error: "Failed to call Gemini API",
+        error: "Gemini API request failed",
         details: errorText,
       });
     }
 
     const data = await response.json();
-    const correctedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No correction available.";
+    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "No correction available.";
 
-    return res.status(200).json({ text: correctedText });
+    return res.status(200).json({ text: output });
 
   } catch (err) {
     console.error("Server error:", err);
