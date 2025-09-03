@@ -2,6 +2,7 @@ const fetch = require("node-fetch");
 
 module.exports = async function handler(req, res) {
   try {
+    // POST メソッドのみ許可
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
     }
@@ -11,9 +12,9 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "No text provided" });
     }
 
-    // Gemini API 呼び出し
+    // Gemini（PaLM 2 / Text-Bison v1beta2） API 呼び出し
     const apiResponse = await fetch(
-      "https://gemini.googleapis.com/v1/models/text-bison-001:generate",
+      "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText",
       {
         method: "POST",
         headers: {
@@ -21,10 +22,9 @@ module.exports = async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          input: text,
-          // 必要に応じてパラメータ追加可能
-          // temperature: 0.7,
-          // maxOutputTokens: 512
+          prompt: text,
+          temperature: 0.7,        // 必要に応じて変更
+          maxOutputTokens: 512     // 必要に応じて変更
         }),
       }
     );
@@ -36,12 +36,13 @@ module.exports = async function handler(req, res) {
     try {
       apiData = JSON.parse(textResponse);
     } catch (parseErr) {
-      return res
-        .status(500)
-        .json({ error: "Failed to parse Gemini API response", raw: textResponse });
+      return res.status(500).json({
+        error: "Failed to parse Gemini API response",
+        raw: textResponse,
+      });
     }
 
-    const outputText = apiData.candidates?.[0]?.output || "No result";
+    const outputText = apiData.candidates?.[0]?.content || "No result";
 
     res.status(200).json({ text: outputText });
 
