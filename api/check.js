@@ -1,4 +1,3 @@
-// /api/check.js
 const fetch = require("node-fetch");
 
 module.exports = async function handler(req, res) {
