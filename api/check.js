@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ JSON形式で出力するように指示
+        // ✅ JSON出力を強制するプロンプト
         const prompt = `
 以下の英文を評価し、以下のJSON形式で返してください。
 {
@@ -45,7 +45,8 @@ module.exports = async function handler(req, res) {
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
-              responseMimeType: "application/json", // ✅ これでJSONが保証される
+              // ✅ これでJSON出力が保証される
+              responseMimeType: "application/json"
             },
           }),
         });
@@ -62,28 +63,28 @@ module.exports = async function handler(req, res) {
         const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         try {
-          // Geminiが返したテキストをJSONとしてパース
+          // ✅ レスポンスをJSONとしてパース
           const result = JSON.parse(resultText);
 
-          // 必要なフィールドがあるかチェック
-          if (result.corrected && result.score && result.advice) {
+          // 必要なフィールドがあるか確認
+          if (result.corrected && typeof result.score === 'number' && result.advice) {
             return res.status(200).json(result);
           } else {
-            throw new Error("Invalid format");
+            throw new Error("Invalid response format");
           }
-        } catch (e) {
+        } catch (parseError) {
           console.error("Failed to parse as JSON:", resultText);
           return res.status(500).json({
-            error: "Invalid JSON response from Gemini",
+            error: "Failed to get valid JSON from Gemini",
             raw: resultText,
           });
         }
-      } catch (e) {
-        res.status(400).json({ error: "Invalid request body" });
+      } catch (parseError) {
+        return res.status(400).json({ error: "Invalid JSON in request" });
       }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Server error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
