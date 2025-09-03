@@ -1,26 +1,54 @@
-// 例: 既存api/check.jsの修正版
-export default async function handler(req, res) {
+// /api/check.js
+const fetch = require("node-fetch");
+
+module.exports = async function handler(req, res) {
   try {
-    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
 
     const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "No text provided" });
+    if (!text) {
+      return res.status(400).json({ error: "No text provided" });
+    }
 
-    const apiResponse = await fetch("https://gemini.googleapis.com/v1/models/text-bison-001:generate", {
+    const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) {
+      return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt: text })
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 512,
+        },
+      }),
     });
 
-    const apiData = await apiResponse.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API Error:", errorText);
+      return res.status(500).json({
+        error: "Failed to call Gemini API",
+        details: errorText,
+      });
+    }
 
-    res.status(200).json({ text: apiData.candidates[0]?.output || "No result" });
+    const data = await response.json();
+    const correctedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No correction available.";
+
+    return res.status(200).json({ text: correctedText });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Server error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
