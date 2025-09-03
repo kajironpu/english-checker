@@ -7,12 +7,8 @@ module.exports = async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // リクエストボディを手動でパース（VercelではExpressのbody-parserが使えない）
     let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-
+    req.on("data", (chunk) => (body += chunk));
     req.on("end", async () => {
       try {
         const { text } = JSON.parse(body || "{}");
@@ -25,8 +21,19 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ 正しいエンドポイント（2025年4月現在）
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // ✅ Geminiに「JSON形式で」3つの項目を生成させるプロンプト
+        const prompt = `
+以下の英文を評価し、以下のJSON形式で返してください。
+{
+  "corrected": "自然で文法的に正しい英文",
+  "score": "100点満点のスコア（整数）",
+  "advice": "改善点のアドバイス（日本語で、丁寧に）"
+}
+
+原文: "${text}"
+`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
           method: "POST",
@@ -34,10 +41,12 @@ module.exports = async function handler(req, res) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: `Please correct the grammar and improve the English: "${text}"` }] }],
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
+              // ✅ JSON出力モードを有効化（Gemini 2.5以降でサポート）
+              responseMimeType: "application/json",
             },
           }),
         });
@@ -52,13 +61,26 @@ module.exports = async function handler(req, res) {
         }
 
         const data = await response.json();
-        const output =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "Sorry, no correction available.";
+        
+        // ✅ GeminiがJSONを返すように指示しているので、そのまま使える
+        const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        res.status(200).json({ text: output });
+        try {
+          const parsedResult = JSON.parse(result);
+          // 必要なキーがあるか確認
+          if (parsedResult.corrected && parsedResult.score && parsedResult.advice) {
+            return res.status(200).json(parsedResult);
+          } else {
+            throw new Error("Invalid response format");
+          }
+        } catch (parseError) {
+          console.error("JSON Parse Error:", result);
+          return res.status(500).json({
+            error: "Failed to parse Gemini response",
+            raw: result,
+          });
+        }
       } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
         res.status(400).json({ error: "Invalid JSON in request" });
       }
     });
