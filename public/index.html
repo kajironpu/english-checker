@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>英作文・添削ツール</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <h2>英作文・添削ツール</h2>
+
+  <h3>問題</h3>
+  <p id="problem">問題を読み込んでいます...</p>
+
+  <h3>あなたの答え</h3>
+  <textarea id="userAnswer" placeholder="ここに英語で答えてください"></textarea>
+
+  <div class="button-group">
+    <button id="checkBtn">添削する</button>
+    <button id="nextBtn">次の問題</button>
+  </div>
+
+  <div class="result">
+    <p><strong>添削後:</strong> <span id="corrected"></span></p>
+    <p><strong>スコア:</strong> <span id="score"></span></p>
+    <p><strong>アドバイス:</strong> <span id="advice"></span></p>
+  </div>
+
+  <script>
+    const problemEl = document.getElementById("problem");
+    const userAnswer = document.getElementById("userAnswer");
+    const checkBtn = document.getElementById("checkBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const corrected = document.getElementById("corrected");
+    const score = document.getElementById("score");
+    const advice = document.getElementById("advice");
+
+    let currentProblem = "";
+    let problems = [];
+
+    async function loadProblems() {
+      try {
+        const response = await fetch('/problems.json');
+        if (!response.ok) throw new Error('問題ファイルの読み込みに失敗しました');
+        const data = await response.json();
+        problems = data.problems;
+        console.log(`${problems.length}個の問題を読み込みました`);
+        showRandomProblem();
+      } catch (error) {
+        console.error('問題読み込みエラー:', error);
+        problemEl.innerHTML = '<span class="error">問題の読み込みに失敗しました。</span>';
+        problems = [
+          "私は毎日公園で犬を散歩させます。",
+          "彼は昨夜遅くまで勉強していました。",
+          "この本はとても面白くて、一気に読み終えました。"
+        ];
+        showRandomProblem();
+      }
+    }
+
+    function showRandomProblem() {
+      if (problems.length === 0) {
+        problemEl.textContent = "問題がありません";
+        return;
+      }
+      currentProblem = problems[Math.floor(Math.random() * problems.length)];
+      problemEl.textContent = currentProblem;
+      userAnswer.value = "";
+      corrected.textContent = "";
+      score.textContent = "";
+      advice.textContent = "";
+    }
+
+    loadProblems();
+
+    checkBtn.addEventListener("click", async () => {
+      const answer = userAnswer.value.trim();
+      if (!answer) {
+        alert("あなたの答えを入力してください");
+        return;
+      }
+
+      checkBtn.disabled = true;
+      corrected.innerHTML = '<span class="loading">添削中...</span>';
+      score.textContent = "";
+      advice.textContent = "";
+
+      try {
+        const res = await fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: answer,
+            context: `問題: "${currentProblem}" に答える形で書かれた英文です。`
+          })
+        });
+
+        const responseText = await res.text();
+        if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
+
+        const data = JSON.parse(responseText);
+
+        if (!data.corrected || typeof data.score !== 'number' || !data.advice) {
+          throw new Error('不正なレスポンス形式');
+        }
+
+        corrected.textContent = data.corrected;
+
+        const scoreValue = data.score;
+        let scoreClass = "score-medium";
+        if (scoreValue >= 80) scoreClass = "score-high";
+        else if (scoreValue < 60) scoreClass = "score-low";
+
+        score.innerHTML = `<span class="${scoreClass}">${scoreValue} / 100</span>`;
+        advice.textContent = data.advice;
+
+      } catch (error) {
+        console.error("Error:", error);
+        corrected.innerHTML = '<span class="error">エラーが発生しました</span>';
+        advice.innerHTML = `<span class="error">通信エラーまたは処理失敗</span>`;
+      } finally {
+        checkBtn.disabled = false;
+      }
+    });
+
+    nextBtn.addEventListener("click", showRandomProblem);
+  </script>
+</body>
+</html>
