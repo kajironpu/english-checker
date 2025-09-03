@@ -78,18 +78,39 @@
     const advice = document.getElementById("advice");
 
     let currentProblem = "";
+    let problems = []; // 外部ファイルから読み込み
 
-    // 問題リスト
-    const problems = [
-      "私は毎日公園で犬を散歩させます。",
-      "彼は昨夜遅くまで勉強していました。",
-      "この本はとても面白くて、一気に読み終えました。",
-      "もし雨が降ったら、ピクニックは中止になります。",
-      "将来、宇宙飛行士になって火星に行きたいです。"
-    ];
+    // 問題ファイルを読み込み
+    async function loadProblems() {
+      try {
+        const response = await fetch('/problems.json');
+        if (!response.ok) {
+          throw new Error('問題ファイルの読み込みに失敗しました');
+        }
+        const data = await response.json();
+        problems = data.problems;
+        console.log(`${problems.length}個の問題を読み込みました`);
+        showRandomProblem(); // 最初の問題を表示
+      } catch (error) {
+        console.error('問題読み込みエラー:', error);
+        problemEl.innerHTML = '<span class="error">問題の読み込みに失敗しました。</span>';
+        // フォールバック用の問題
+        problems = [
+          "私は毎日公園で犬を散歩させます。",
+          "彼は昨夜遅くまで勉強していました。",
+          "この本はとても面白くて、一気に読み終えました。"
+        ];
+        showRandomProblem();
+      }
+    }
 
     // ランダムな問題を表示
     function showRandomProblem() {
+      if (problems.length === 0) {
+        problemEl.textContent = "問題がありません";
+        return;
+      }
+      
       currentProblem = problems[Math.floor(Math.random() * problems.length)];
       problemEl.textContent = currentProblem;
       userAnswer.value = "";
@@ -99,8 +120,8 @@
       advice.textContent = "";
     }
 
-    // 最初に問題を表示
-    showRandomProblem();
+    // 初期化
+    loadProblems();
 
     // 添削処理
     checkBtn.addEventListener("click", async () => {
@@ -161,7 +182,7 @@
         let scoreClass = "score-medium";
         if (scoreValue >= 80) scoreClass = "score-high";
         else if (scoreValue < 60) scoreClass = "score-low";
-        score.innerHTML = `<span class="${scoreClass}">${scoreValue} / 100</span>`;
+        score.innerHTML = `<span class="${scoreClass">${scoreValue} / 100</span>`;
         
         advice.textContent = data.advice;
 
