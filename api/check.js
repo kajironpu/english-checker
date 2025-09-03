@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 512,
+              maxOutputTokens: 1024,
               responseMimeType: "application/json" // ✅ JSON出力を強制
             },
           }),
