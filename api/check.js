@@ -7,12 +7,8 @@ module.exports = async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // リクエストボディを手動でパース（VercelではExpressのbody-parserが使えない）
     let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-
+    req.on("data", (chunk) => (body += chunk));
     req.on("end", async () => {
       try {
         const { text } = JSON.parse(body || "{}");
@@ -25,8 +21,20 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ 正しいエンドポイント（2025年4月現在）
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // ✅ 正しいプロンプト（JSON出力を指示）
+        const prompt = `
+以下の英文を評価し、以下のJSON形式で返してください。
+{
+  "corrected": "自然で文法的に正しい英文",
+  "score": "100点満点のスコア（整数）",
+  "advice": "改善点のアドバイス（日本語で、丁寧に）"
+}
+
+原文: "${text}"
+`;
+
+        // ✅ 正しいエンドポイント
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
           method: "POST",
@@ -34,17 +42,17 @@ module.exports = async function handler(req, res) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: `Please correct the grammar and improve the English: "${text}"` }] }],
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
+              responseMimeType: "application/json" // ✅ JSON出力を強制
             },
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Gemini API Error:", errorText);
           return res.status(500).json({
             error: "Gemini API request failed",
             details: errorText,
@@ -52,18 +60,28 @@ module.exports = async function handler(req, res) {
         }
 
         const data = await response.json();
-        const output =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          "Sorry, no correction available.";
+        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        res.status(200).json({ text: output });
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        res.status(400).json({ error: "Invalid JSON in request" });
+        try {
+          const result = JSON.parse(resultText);
+          if (result.corrected && typeof result.score === 'number' && result.advice) {
+            return res.status(200).json(result);
+          } else {
+            throw new Error("Invalid format");
+          }
+        } catch (e) {
+          console.error("Failed to parse as JSON:", resultText);
+          return res.status(500).json({
+            error: "Invalid JSON response from Gemini",
+            raw: resultText,
+          });
+        }
+      } catch (e) {
+        res.status(400).json({ error: "Invalid request body" });
       }
     });
   } catch (err) {
-    console.error("Server error:", err);
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
