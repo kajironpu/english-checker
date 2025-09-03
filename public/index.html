@@ -79,7 +79,7 @@
 
     let currentProblem = "";
 
-    // 問題リスト（後でAPIにしてもOK）
+    // 問題リスト
     const problems = [
       "私は毎日公園で犬を散歩させます。",
       "彼は昨夜遅くまで勉強していました。",
@@ -110,23 +110,51 @@
         return;
       }
 
+      // UI状態を更新
+      checkBtn.disabled = true;
       corrected.innerHTML = '<span class="loading">添削中...</span>';
       score.textContent = "";
       advice.textContent = "";
 
       try {
+        console.log('Sending request...'); // デバッグ用
+
         const res = await fetch("/api/check", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             text: answer,
             context: `問題: "${currentProblem}" に答える形で書かれた英文です。`
           })
         });
 
-        if (!res.ok) throw new Error(`エラー: ${res.status}`);
+        console.log('Response status:', res.status); // デバッグ用
 
-        const data = await res.json();
+        // レスポンステキストを先に取得
+        const responseText = await res.text();
+        console.log('Response text:', responseText); // デバッグ用
+
+        if (!res.ok) {
+          throw new Error(`API エラー: ${res.status} - ${responseText}`);
+        }
+
+        // JSONパース
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error('レスポンスのJSONパースに失敗しました');
+        }
+
+        // データ検証
+        if (!data.corrected || typeof data.score !== 'number' || !data.advice) {
+          throw new Error('不正なレスポンス形式です');
+        }
+
+        // UI更新
         corrected.textContent = data.corrected;
         
         const scoreValue = data.score;
@@ -139,8 +167,11 @@
 
       } catch (error) {
         console.error("Error:", error);
-        corrected.innerHTML = '<span class="error">エラーが発生しました。</span>';
+        corrected.innerHTML = '<span class="error">エラーが発生しました</span>';
         advice.innerHTML = `<span class="error">${error.message}</span>`;
+      } finally {
+        // ボタンを有効化
+        checkBtn.disabled = false;
       }
     });
 
