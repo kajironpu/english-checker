@@ -21,7 +21,6 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ 明確なJSON出力指示 + 日本語解説
         const prompt = `
 以下の英文を評価し、以下のJSON形式で返してください。
 {
@@ -45,7 +44,7 @@ module.exports = async function handler(req, res) {
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
-              responseMimeType: "application/json" // ✅ 超重要
+              responseMimeType: "application/json" // ✅ 必須
             },
           }),
         });
@@ -62,6 +61,7 @@ module.exports = async function handler(req, res) {
         const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         try {
+          // ✅ ここでJSON.parseする
           const result = JSON.parse(resultText);
           if (result.corrected && typeof result.score === 'number' && result.advice) {
             return res.status(200).json(result);
