@@ -10,6 +10,11 @@
     textarea { width: 100%; height: 80px; margin-bottom: 0.5em; }
     button { padding: 0.5em 1em; margin: 0.3em; }
     #micStatus { color: #555; margin-top: 0.5em; }
+    .error { color: red; }
+    .loading { color: orange; }
+    .score-high { color: green; font-weight: bold; }
+    .score-medium { color: orange; }
+    .score-low { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -84,22 +89,23 @@
 
     loadProblems();
 
-    // ---------- 音声入力 ----------
+    // ---------- 音声入力（英語強制版） ----------
     function setupSpeechRecognition() {
-      // iPhone Safari/Chrome は未対応 → fallback
       if (!('webkitSpeechRecognition' in window)) {
+        // iPhone Safari/Chromeは未対応 → キーボードのマイクを案内
         micBtn.style.display = "none";
         micStatus.textContent = "🎤 iPhoneではキーボードのマイクで音声入力してください";
         return;
       }
 
       const recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US";   // 英語を認識
+      recognition.lang = "en-US";   // 英語（米国）
       recognition.interimResults = true;
       recognition.continuous = false;
 
       recognition.onstart = () => {
-        micStatus.textContent = "🎙️ 話してください...";
+        micStatus.textContent = "🎙️ 英語で話してください (lang: " + recognition.lang + ")";
+        console.log("音声認識開始: lang =", recognition.lang);
       };
 
       recognition.onresult = (event) => {
@@ -107,11 +113,13 @@
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           transcript += event.results[i][0].transcript;
         }
+        console.log("認識結果:", transcript);
         userAnswer.value = transcript;
       };
 
       recognition.onerror = (event) => {
         micStatus.textContent = "⚠️ エラー: " + event.error;
+        console.error("認識エラー:", event.error);
       };
 
       recognition.onend = () => {
@@ -119,6 +127,8 @@
       };
 
       micBtn.addEventListener("click", () => {
+        recognition.lang = "en-US"; // マイク起動時に再度強制
+        console.log("マイク開始時に lang を再設定:", recognition.lang);
         recognition.start();
       });
     }
