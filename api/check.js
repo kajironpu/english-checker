@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ Geminiに「JSON形式で」3つの項目を生成させるプロンプト
+        // ✅ JSON形式で出力するように指示
         const prompt = `
 以下の英文を評価し、以下のJSON形式で返してください。
 {
@@ -45,15 +45,13 @@ module.exports = async function handler(req, res) {
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
-              // ✅ JSON出力モードを有効化（Gemini 2.5以降でサポート）
-              responseMimeType: "application/json",
+              responseMimeType: "application/json", // ✅ これでJSONが保証される
             },
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Gemini API Error:", errorText);
           return res.status(500).json({
             error: "Gemini API request failed",
             details: errorText,
@@ -61,31 +59,31 @@ module.exports = async function handler(req, res) {
         }
 
         const data = await response.json();
-        
-        // ✅ GeminiがJSONを返すように指示しているので、そのまま使える
-        const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         try {
-          const parsedResult = JSON.parse(result);
-          // 必要なキーがあるか確認
-          if (parsedResult.corrected && parsedResult.score && parsedResult.advice) {
-            return res.status(200).json(parsedResult);
+          // Geminiが返したテキストをJSONとしてパース
+          const result = JSON.parse(resultText);
+
+          // 必要なフィールドがあるかチェック
+          if (result.corrected && result.score && result.advice) {
+            return res.status(200).json(result);
           } else {
-            throw new Error("Invalid response format");
+            throw new Error("Invalid format");
           }
-        } catch (parseError) {
-          console.error("JSON Parse Error:", result);
+        } catch (e) {
+          console.error("Failed to parse as JSON:", resultText);
           return res.status(500).json({
-            error: "Failed to parse Gemini response",
-            raw: result,
+            error: "Invalid JSON response from Gemini",
+            raw: resultText,
           });
         }
-      } catch (parseError) {
-        res.status(400).json({ error: "Invalid JSON in request" });
+      } catch (e) {
+        res.status(400).json({ error: "Invalid request body" });
       }
     });
   } catch (err) {
-    console.error("Server error:", err);
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
