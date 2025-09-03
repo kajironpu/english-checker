@@ -13,18 +13,18 @@ module.exports = async function handler(req, res) {
 
     const API_KEY = process.env.GEMINI_API_KEY;
     if (!API_KEY) {
-      return res.status(500).json({ error: "Gemini API key not configured" });
+      return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
     }
 
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
 
-    const apiResponse = await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: text }] }],
+        contents: [{ role: "user", parts: [{ text }] }],
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 512,
@@ -32,25 +32,22 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error("Gemini API error:", errorText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API Error:", errorText);
       return res.status(500).json({
-        error: "Gemini API request failed",
+        error: "Failed to call Gemini API",
         details: errorText,
       });
     }
 
-    const apiData = await apiResponse.json();
+    const data = await response.json();
+    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "No output";
 
-    // 出力テキストを抽出
-    const outputText =
-      apiData.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
-
-    res.status(200).json({ text: outputText });
+    return res.status(200).json({ text: output });
 
   } catch (err) {
     console.error("Server error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
