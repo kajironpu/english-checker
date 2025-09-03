@@ -1,54 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>英作文・添削ツール2</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      padding: 20px; 
-      max-width: 800px; 
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-    h2, h3 {
-      color: #333;
-    }
-    textarea { 
-      width: 100%; 
-      height: 120px; 
-      padding: 10px;
-      box-sizing: border-box;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-    button { 
-      margin-top: 10px; 
-      padding: 10px 20px; 
-      font-size: 16px; 
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover { background-color: #3367d6; }
-    button:disabled { background-color: #ccc; cursor: not-allowed; }
-    .result { 
-      margin-top: 20px; 
-      padding: 15px;
-      background-color: #f9f9f9;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
-    }
-    .loading { color: #666; font-style: italic; }
-    .error { color: #d93025; }
-    .score-high { color: #0f9d58; }
-    .score-medium { color: #f4b400; }
-    .score-low { color: #db4437; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>英作文・添削ツール</title>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
   <h2>英作文・添削ツール</h2>
@@ -58,9 +14,11 @@
 
   <h3>あなたの答え</h3>
   <textarea id="userAnswer" placeholder="ここに英語で答えてください"></textarea>
-  <br>
-  <button id="checkBtn">添削する</button>
-  <button id="nextBtn" style="margin-left: 10px; background-color: #0f9d58;">次の問題</button>
+
+  <div class="button-group">
+    <button id="checkBtn">添削する</button>
+    <button id="nextBtn">次の問題</button>
+  </div>
 
   <div class="result">
     <p><strong>添削後:</strong> <span id="corrected"></span></p>
@@ -78,23 +36,19 @@
     const advice = document.getElementById("advice");
 
     let currentProblem = "";
-    let problems = []; // 外部ファイルから読み込み
+    let problems = [];
 
-    // 問題ファイルを読み込み
     async function loadProblems() {
       try {
         const response = await fetch('/problems.json');
-        if (!response.ok) {
-          throw new Error('問題ファイルの読み込みに失敗しました');
-        }
+        if (!response.ok) throw new Error('問題ファイルの読み込みに失敗しました');
         const data = await response.json();
         problems = data.problems;
         console.log(`${problems.length}個の問題を読み込みました`);
-        showRandomProblem(); // 最初の問題を表示
+        showRandomProblem();
       } catch (error) {
         console.error('問題読み込みエラー:', error);
         problemEl.innerHTML = '<span class="error">問題の読み込みに失敗しました。</span>';
-        // フォールバック用の問題
         problems = [
           "私は毎日公園で犬を散歩させます。",
           "彼は昨夜遅くまで勉強していました。",
@@ -104,26 +58,21 @@
       }
     }
 
-    // ランダムな問題を表示
     function showRandomProblem() {
       if (problems.length === 0) {
         problemEl.textContent = "問題がありません";
         return;
       }
-      
       currentProblem = problems[Math.floor(Math.random() * problems.length)];
       problemEl.textContent = currentProblem;
       userAnswer.value = "";
-      // 結果をリセット
       corrected.textContent = "";
       score.textContent = "";
       advice.textContent = "";
     }
 
-    // 初期化
     loadProblems();
 
-    // 添削処理
     checkBtn.addEventListener("click", async () => {
       const answer = userAnswer.value.trim();
       if (!answer) {
@@ -131,72 +80,49 @@
         return;
       }
 
-      // UI状態を更新
       checkBtn.disabled = true;
       corrected.innerHTML = '<span class="loading">添削中...</span>';
       score.textContent = "";
       advice.textContent = "";
 
       try {
-        console.log('Sending request...'); // デバッグ用
-
         const res = await fetch("/api/check", {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text: answer,
             context: `問題: "${currentProblem}" に答える形で書かれた英文です。`
           })
         });
 
-        console.log('Response status:', res.status); // デバッグ用
-
-        // レスポンステキストを先に取得
         const responseText = await res.text();
-        console.log('Response text:', responseText); // デバッグ用
+        if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
 
-        if (!res.ok) {
-          throw new Error(`API エラー: ${res.status} - ${responseText}`);
-        }
+        const data = JSON.parse(responseText);
 
-        // JSONパース
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          throw new Error('レスポンスのJSONパースに失敗しました');
-        }
-
-        // データ検証
         if (!data.corrected || typeof data.score !== 'number' || !data.advice) {
-          throw new Error('不正なレスポンス形式です');
+          throw new Error('不正なレスポンス形式');
         }
 
-        // UI更新
         corrected.textContent = data.corrected;
-        
+
         const scoreValue = data.score;
         let scoreClass = "score-medium";
         if (scoreValue >= 80) scoreClass = "score-high";
         else if (scoreValue < 60) scoreClass = "score-low";
+
         score.innerHTML = `<span class="${scoreClass}">${scoreValue} / 100</span>`;
-        
         advice.textContent = data.advice;
 
       } catch (error) {
         console.error("Error:", error);
         corrected.innerHTML = '<span class="error">エラーが発生しました</span>';
-        advice.innerHTML = `<span class="error">${error.message}</span>`;
+        advice.innerHTML = `<span class="error">通信エラーまたは処理失敗</span>`;
       } finally {
-        // ボタンを有効化
         checkBtn.disabled = false;
       }
     });
 
-    // 次の問題
     nextBtn.addEventListener("click", showRandomProblem);
   </script>
 </body>
