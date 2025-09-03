@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 {
   "corrected": "自然で文法的に正しい英文",
   "score": "100点満点のスコア（整数）",
-  "advice": "改善点のアドバイス（日本語で、丁寧に）。問題の意図も踏まえてください。"
+  "advice": "改善点のアドバイス（日本語で、丁寧に、中学生向けにわかりやすく）。問題の意図も踏まえてください。"
 }
 
 ${context || ""}
