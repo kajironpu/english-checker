@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
         }
 
-        // ✅ JSON出力を強制するプロンプト
+        // ✅ 明確なJSON出力指示 + 日本語解説
         const prompt = `
 以下の英文を評価し、以下のJSON形式で返してください。
 {
@@ -45,8 +45,7 @@ module.exports = async function handler(req, res) {
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 512,
-              // ✅ これでJSON出力が保証される
-              responseMimeType: "application/json"
+              responseMimeType: "application/json" // ✅ 超重要
             },
           }),
         });
@@ -63,28 +62,25 @@ module.exports = async function handler(req, res) {
         const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         try {
-          // ✅ レスポンスをJSONとしてパース
           const result = JSON.parse(resultText);
-
-          // 必要なフィールドがあるか確認
           if (result.corrected && typeof result.score === 'number' && result.advice) {
             return res.status(200).json(result);
           } else {
-            throw new Error("Invalid response format");
+            throw new Error("Invalid format");
           }
-        } catch (parseError) {
+        } catch (e) {
           console.error("Failed to parse as JSON:", resultText);
           return res.status(500).json({
-            error: "Failed to get valid JSON from Gemini",
+            error: "Invalid JSON response from Gemini",
             raw: resultText,
           });
         }
-      } catch (parseError) {
-        return res.status(400).json({ error: "Invalid JSON in request" });
+      } catch (e) {
+        res.status(400).json({ error: "Invalid request body" });
       }
     });
   } catch (err) {
-    console.error("Server error:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
