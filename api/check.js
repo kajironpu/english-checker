@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "No text provided" });
     }
 
-    // Gemini（PaLM 2 / Text-Bison v1beta2） API 呼び出し
+    // Gemini / PaLM 2 最新 API エンドポイント
     const apiResponse = await fetch(
       "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText",
       {
@@ -23,8 +23,8 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           prompt: text,
-          temperature: 0.7,        // 必要に応じて変更
-          maxOutputTokens: 512     // 必要に応じて変更
+          temperature: 0.7,       // 必要に応じて調整
+          maxOutputTokens: 512    // 必要に応じて調整
         }),
       }
     );
@@ -42,6 +42,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Gemini の返却形式に合わせて出力
     const outputText = apiData.candidates?.[0]?.content || "No result";
 
     res.status(200).json({ text: outputText });
