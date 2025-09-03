@@ -21,9 +21,9 @@ export default async function handler(req, res) {
     const prompt = `
 英文を評価し、以下のJSON形式のみで返答してください：
 {
-  "corrected": "自然で文法的に正しい英文",
-  "score": "100点満点のスコア（整数）",
-  "advice": "改善点のアドバイス（日本語で、丁寧に、中学生向けにわかりやすく端的に）。問題の意図も踏まえてください。"
+  "corrected": "修正された英文",
+  "score": 数値（0-100）,
+  "advice": "改善アドバイス（日本語、200文字以内）"
 }
 
 ${context ? `問題文脈: ${context}` : ""}
@@ -31,7 +31,7 @@ ${context ? `問題文脈: ${context}` : ""}
 
 注意：JSON形式以外は一切出力しないでください。`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
     
     const response = await fetch(url, {
       method: "POST",
