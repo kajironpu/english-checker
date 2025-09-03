@@ -21,9 +21,9 @@ export default async function handler(req, res) {
     const prompt = `
 英文を評価し、以下のJSON形式のみで返答してください：
 {
-  "corrected": "修正された英文",
-  "score": 数値（0-100）,
-  "advice": "改善アドバイス（日本語、200文字以内）"
+  "corrected": "自然で文法的に正しい英文",
+  "score": "100点満点のスコア（整数）",
+  "advice": "改善点のアドバイス（日本語で、丁寧に、中学生向けにわかりやすく端的に）。問題の意図も踏まえてください。"
 }
 
 ${context ? `問題文脈: ${context}` : ""}
