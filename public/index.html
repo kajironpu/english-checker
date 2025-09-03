@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>英作文・添削ツール</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    textarea { width: 100%; height: 80px; margin-bottom: 0.5em; }
+    button { padding: 0.5em 1em; margin: 0.3em; }
+    #micStatus { color: #555; margin-top: 0.5em; }
+  </style>
 </head>
 <body>
   <h2>英作文・添削ツール</h2>
@@ -14,6 +20,8 @@
 
   <h3>あなたの答え</h3>
   <textarea id="userAnswer" placeholder="ここに英語で答えてください"></textarea>
+  <button id="micBtn">🎤 音声入力</button>
+  <p id="micStatus"></p>
 
   <div class="button-group">
     <button id="checkBtn">添削する</button>
@@ -35,16 +43,19 @@
     const score = document.getElementById("score");
     const advice = document.getElementById("advice");
 
+    const micBtn = document.getElementById("micBtn");
+    const micStatus = document.getElementById("micStatus");
+
     let currentProblem = "";
     let problems = [];
 
+    // ---------- 問題の読み込み ----------
     async function loadProblems() {
       try {
         const response = await fetch('/problems.json');
         if (!response.ok) throw new Error('問題ファイルの読み込みに失敗しました');
         const data = await response.json();
         problems = data.problems;
-        console.log(`${problems.length}個の問題を読み込みました`);
         showRandomProblem();
       } catch (error) {
         console.error('問題読み込みエラー:', error);
@@ -73,6 +84,48 @@
 
     loadProblems();
 
+    // ---------- 音声入力 ----------
+    function setupSpeechRecognition() {
+      // iPhone Safari/Chrome は未対応 → fallback
+      if (!('webkitSpeechRecognition' in window)) {
+        micBtn.style.display = "none";
+        micStatus.textContent = "🎤 iPhoneではキーボードのマイクで音声入力してください";
+        return;
+      }
+
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";   // 英語を認識
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        micStatus.textContent = "🎙️ 話してください...";
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        userAnswer.value = transcript;
+      };
+
+      recognition.onerror = (event) => {
+        micStatus.textContent = "⚠️ エラー: " + event.error;
+      };
+
+      recognition.onend = () => {
+        micStatus.textContent = "✅ 入力完了";
+      };
+
+      micBtn.addEventListener("click", () => {
+        recognition.start();
+      });
+    }
+
+    setupSpeechRecognition();
+
+    // ---------- 添削リクエスト ----------
     checkBtn.addEventListener("click", async () => {
       const answer = userAnswer.value.trim();
       if (!answer) {
