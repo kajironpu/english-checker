@@ -1,10 +1,5 @@
 /* public/css/style.css */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -14,44 +9,22 @@ body {
   line-height: 1.8;
   background-color: #f8f9fa;
   color: #333;
-  font-size: 18px; /* 🔼 基本フォントを18pxに（PC・タブレット） */
+  font-size: 18px;
 }
 
-/* スマホではやや小さめに調整 */
 @media (max-width: 480px) {
-  body {
-    font-size: 17px; /* 小さすぎず、見やすい */
-    padding: 15px;
-  }
+  body { font-size: 17px; padding: 15px; }
 }
-
 @media (max-width: 360px) {
-  body {
-    font-size: 16px;
-    padding: 12px;
-  }
+  body { font-size: 16px; padding: 12px; }
 }
 
-h2 {
-  font-size: 28px; /* 🔼 大きく */
-  color: #2c3e50;
-  margin-bottom: 12px;
-}
+h2 { font-size: 28px; color: #2c3e50; margin-bottom: 12px; }
+h3 { font-size: 22px; color: #2c3e50; margin-bottom: 10px; }
+p { margin-bottom: 12px; font-size: 18px; }
 
-h3 {
-  font-size: 22px; /* 🔼 */
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
-
-p {
-  margin-bottom: 12px;
-  font-size: 18px; /* 🔼 */
-}
-
-/* 問題表示エリア */
 #problem {
-  font-size: 20px; /* 🔼 問題はさらに大きく */
+  font-size: 20px;
   font-weight: 600;
   padding: 18px;
   background-color: #e8f4f8;
@@ -61,12 +34,11 @@ p {
   word-break: break-word;
 }
 
-/* テキストエリア */
 textarea {
   width: 100%;
-  height: 160px; /* 🔼 高さも少し増 */
+  height: 160px;
   padding: 14px;
-  font-size: 18px; /* 🔼 入力欄も大きく */
+  font-size: 18px;
   border: 1px solid #ccc;
   border-radius: 8px;
   resize: vertical;
@@ -81,7 +53,6 @@ textarea:focus {
   box-shadow: 0 0 6px rgba(66, 133, 244, 0.3);
 }
 
-/* ボタンコンテナ */
 .button-group {
   display: flex;
   gap: 14px;
@@ -91,7 +62,7 @@ textarea:focus {
 
 button {
   padding: 14px 24px;
-  font-size: 18px; /* 🔼 ボタン文字も大きく */
+  font-size: 18px;
   font-weight: bold;
   border: none;
   border-radius: 8px;
@@ -102,25 +73,11 @@ button {
   text-align: center;
 }
 
-button#checkBtn {
-  background-color: #4285f4;
-  color: white;
-}
+button#checkBtn { background-color: #4285f4; color: white; }
+button#checkBtn:hover:not(:disabled) { background-color: #3367d6; transform: translateY(-1px); }
 
-button#checkBtn:hover:not(:disabled) {
-  background-color: #3367d6;
-  transform: translateY(-1px);
-}
-
-button#nextBtn {
-  background-color: #0f9d58;
-  color: white;
-}
-
-button#nextBtn:hover {
-  background-color: #0b8a45;
-  transform: translateY(-1px);
-}
+button#nextBtn { background-color: #0f9d58; color: white; }
+button#nextBtn:hover { background-color: #0b8a45; transform: translateY(-1px); }
 
 button:disabled {
   background-color: #ccc;
@@ -128,10 +85,9 @@ button:disabled {
   transform: none;
 }
 
-/* 結果表示エリア */
 .result {
   margin-top: 24px;
-  padding: 24px; /* 🔼 中身ゆとりを増 */
+  padding: 24px;
   background-color: #ffffff;
   border-radius: 10px;
   border: 1px solid #e0e0e0;
@@ -140,7 +96,7 @@ button:disabled {
 
 .result p {
   margin-bottom: 14px;
-  font-size: 18px; /* 🔼 */
+  font-size: 18px;
   line-height: 1.8;
 }
 
@@ -149,83 +105,28 @@ button:disabled {
   font-weight: 700;
 }
 
-/* 各結果のフォントサイズも統一 */
 #corrected, #score, #advice {
   font-size: 19px;
   line-height: 1.7;
 }
 
-.loading {
-  color: #666;
-  font-style: italic;
-}
+.loading { color: #666; font-style: italic; }
+.error { color: #d93025; font-weight: bold; }
+.score-high { color: #0f9d58; font-weight: bold; }
+.score-medium { color: #f4b400; font-weight: bold; }
+.score-low { color: #db4437; font-weight: bold; }
 
-.error {
-  color: #d93025;
-  font-weight: bold;
-}
-
-.score-high {
-  color: #0f9d58;
-  font-weight: bold;
-}
-
-.score-medium {
-  color: #f4b400;
-  font-weight: bold;
-}
-
-.score-low {
-  color: #db4437;
-  font-weight: bold;
-}
-
-/* スマホ対応（文字サイズの微調整） */
 @media (max-width: 480px) {
-  h2 {
-    font-size: 24px;
-  }
-
-  h3 {
-    font-size: 20px;
-  }
-
-  #problem {
-    font-size: 19px;
-    padding: 16px;
-  }
-
-  textarea {
-    height: 140px;
-    font-size: 17px;
-    padding: 12px;
-  }
-
-  button {
-    font-size: 17px;
-    padding: 12px 20px;
-    min-width: 130px;
-  }
-
-  .result {
-    padding: 20px;
-  }
-
-  .result p,
-  #corrected, #score, #advice {
-    font-size: 17px;
-  }
+  h2 { font-size: 24px; }
+  h3 { font-size: 20px; }
+  #problem { font-size: 19px; padding: 16px; }
+  textarea { height: 140px; font-size: 17px; padding: 12px; }
+  button { font-size: 17px; padding: 12px 20px; min-width: 130px; }
+  .result { padding: 20px; }
+  .result p, #corrected, #score, #advice { font-size: 17px; }
 }
 
-/* タブレット */
 @media (min-width: 481px) and (max-width: 768px) {
-  body {
-    font-size: 18px;
-    padding: 25px;
-  }
-
-  textarea {
-    height: 150px;
-    font-size: 18px;
-  }
+  body { font-size: 18px; padding: 25px; }
+  textarea { height: 150px; font-size: 18px; }
 }
