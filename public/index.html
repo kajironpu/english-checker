@@ -1,40 +1,69 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>英文添削ツール</title>
-<style>
-body { font-family: Arial; padding: 20px; }
-textarea { width: 100%; height: 100px; }
-button { margin-top: 10px; padding: 10px; }
-.result { margin-top: 20px; }
-</style>
+  <meta charset="UTF-8">
+  <title>英文添削ツール</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 100px; margin-top: 10px; }
+    button { margin-top: 10px; padding: 10px 20px; font-size: 16px; }
+    .result { margin-top: 20px; }
+    .loading { color: #666; }
+  </style>
 </head>
 <body>
-<h2>英文添削ツール</h2>
-<textarea id="inputText" placeholder="英文を入力してください"></textarea>
-<br>
-<button id="checkBtn">送信</button>
+  <h2>英文添削ツール</h2>
+  <textarea id="inputText" placeholder="英文を入力してください"></textarea>
+  <br>
+  <button id="checkBtn">添削する</button>
 
-<div class="result">
-  <p><strong>添削後:</strong> <span id="corrected"></span></p>
-  <p><strong>スコア:</strong> <span id="score"></span></p>
-  <p><strong>アドバイス:</strong> <span id="advice"></span></p>
-</div>
+  <div class="result">
+    <p><strong>添削後:</strong> <span id="corrected"></span></p>
+    <p><strong>アドバイス:</strong> <span id="advice"></span></p>
+  </div>
 
-<script>
-document.getElementById("checkBtn").addEventListener("click", async () => {
-  const text = document.getElementById("inputText").value;
-  const res = await fetch("/check", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ text })
-  });
-  const data = await res.json();
-  document.getElementById("corrected").innerText = data.corrected;
-  document.getElementById("score").innerText = data.score;
-  document.getElementById("advice").innerText = data.advice;
-});
-</script>
+  <script>
+    document.getElementById("checkBtn").addEventListener("click", async () => {
+      const text = document.getElementById("inputText").value.trim();
+      const corrected = document.getElementById("corrected");
+      const advice = document.getElementById("advice");
+
+      // 入力チェック
+      if (!text) {
+        alert("英文を入力してください");
+        return;
+      }
+
+      // ローディング表示
+      corrected.innerText = "添削中...";
+      advice.innerText = "";
+
+      try {
+        const res = await fetch("/api/check", {  // ✅ 修正: /api/check
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        if (!res.ok) {
+          throw new Error(`エラー: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        // ✅ 修正: APIのレスポンスは { "text": "..." } なので、そのまま表示
+        corrected.innerText = data.text;
+        
+        // オプション: Geminiにアドバイスも生成させたい場合
+        // 今のAPIでは返していないので、一旦非表示
+        advice.innerText = "（詳細なアドバイスは次のステップで追加できます）";
+
+      } catch (error) {
+        corrected.innerText = "エラーが発生しました。";
+        advice.innerText = error.message;
+        console.error("Fetch error:", error);
+      }
+    });
+  </script>
 </body>
 </html>
