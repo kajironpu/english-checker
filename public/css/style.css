@@ -28,7 +28,7 @@ p { margin-bottom: 12px; font-size: 18px; }
 
 textarea {
   width: 100%;
-  height: 3em; /* 2行分 */
+  height: 6em; /* 2行分 */
   margin-bottom: 0.5em;
   overflow-y: auto;
   resize: vertical;
