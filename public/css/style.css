@@ -44,9 +44,13 @@ textarea:focus {
 
 #voiceInputBtn {
   display: block;
-  margin: 0.5em auto 1em;
-  padding: 0.5em 1em;
+  margin: 0.5em auto 1em;   /* 上0.5em、下1em、左右中央 */
+  padding: 1em 1.5em;       /* 上下 1em、左右 1.5em → 縦に大きく */
+  font-size: 18px;          /* 必要に応じて文字サイズも大きく */
+  border-radius: 8px;
+  cursor: pointer;
 }
+
 
 .button-group {
   display: flex;
