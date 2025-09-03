@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>英文添削ツール</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+textarea { width: 100%; height: 100px; }
+button { margin-top: 10px; padding: 10px; }
+.result { margin-top: 20px; }
+</style>
+</head>
+<body>
+<h2>英文添削ツール</h2>
+<textarea id="inputText" placeholder="英文を入力してください"></textarea>
+<br>
+<button id="checkBtn">送信</button>
+
+<div class="result">
+  <p><strong>添削後:</strong> <span id="corrected"></span></p>
+  <p><strong>スコア:</strong> <span id="score"></span></p>
+  <p><strong>アドバイス:</strong> <span id="advice"></span></p>
+</div>
+
+<script>
+document.getElementById("checkBtn").addEventListener("click", async () => {
+  const text = document.getElementById("inputText").value;
+  const res = await fetch("/check", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text })
+  });
+  const data = await res.json();
+  document.getElementById("corrected").innerText = data.corrected;
+  document.getElementById("score").innerText = data.score;
+  document.getElementById("advice").innerText = data.advice;
+});
+</script>
+</body>
+</html>
