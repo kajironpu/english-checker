@@ -5,17 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>英作文・添削ツール</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <style>
-    body { font-family: sans-serif; padding: 1em; }
-    textarea { width: 100%; height: 80px; margin-bottom: 0.5em; }
-    button { padding: 0.5em 1em; margin: 0.3em; }
-    #micStatus { color: #555; margin-top: 0.5em; }
-    .error { color: red; }
-    .loading { color: orange; }
-    .score-high { color: green; font-weight: bold; }
-    .score-medium { color: orange; }
-    .score-low { color: red; font-weight: bold; }
-  </style>
 </head>
 <body>
   <h2>英作文・添削ツール</h2>
@@ -25,8 +14,7 @@
 
   <h3>あなたの答え</h3>
   <textarea id="userAnswer" placeholder="ここに英語で答えてください"></textarea>
-  <button id="micBtn">🎤 音声入力</button>
-  <p id="micStatus"></p>
+  <button id="voiceInputBtn">🎤 音声入力</button>
 
   <div class="button-group">
     <button id="checkBtn">添削する</button>
@@ -47,14 +35,12 @@
     const corrected = document.getElementById("corrected");
     const score = document.getElementById("score");
     const advice = document.getElementById("advice");
-
-    const micBtn = document.getElementById("micBtn");
-    const micStatus = document.getElementById("micStatus");
+    const voiceInputBtn = document.getElementById("voiceInputBtn");
 
     let currentProblem = "";
     let problems = [];
 
-    // ---------- 問題の読み込み ----------
+    // === 問題ロード ===
     async function loadProblems() {
       try {
         const response = await fetch('/problems.json');
@@ -64,7 +50,6 @@
         showRandomProblem();
       } catch (error) {
         console.error('問題読み込みエラー:', error);
-        problemEl.innerHTML = '<span class="error">問題の読み込みに失敗しました。</span>';
         problems = [
           "私は毎日公園で犬を散歩させます。",
           "彼は昨夜遅くまで勉強していました。",
@@ -89,53 +74,31 @@
 
     loadProblems();
 
-    // ---------- 音声入力（英語強制版） ----------
-    function setupSpeechRecognition() {
+    // === 音声入力 ===
+    voiceInputBtn.addEventListener("click", () => {
       if (!('webkitSpeechRecognition' in window)) {
-        // iPhone Safari/Chromeは未対応 → キーボードのマイクを案内
-        micBtn.style.display = "none";
-        micStatus.textContent = "🎤 iPhoneではキーボードのマイクで音声入力してください";
+        alert("このブラウザは音声入力に対応していません");
         return;
       }
-
       const recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US";   // 英語（米国）
-      recognition.interimResults = true;
+      recognition.lang = "en-US";   // 英語を強制
+      recognition.interimResults = false;
       recognition.continuous = false;
 
-      recognition.onstart = () => {
-        micStatus.textContent = "🎙️ 英語で話してください (lang: " + recognition.lang + ")";
-        console.log("音声認識開始: lang =", recognition.lang);
-      };
+      recognition.start();
 
       recognition.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
-        }
-        console.log("認識結果:", transcript);
+        const transcript = event.results[0][0].transcript;
         userAnswer.value = transcript;
       };
 
       recognition.onerror = (event) => {
-        micStatus.textContent = "⚠️ エラー: " + event.error;
-        console.error("認識エラー:", event.error);
+        console.error("音声認識エラー:", event.error);
+        alert("音声入力に失敗しました: " + event.error);
       };
+    });
 
-      recognition.onend = () => {
-        micStatus.textContent = "✅ 入力完了";
-      };
-
-      micBtn.addEventListener("click", () => {
-        recognition.lang = "en-US"; // マイク起動時に再度強制
-        console.log("マイク開始時に lang を再設定:", recognition.lang);
-        recognition.start();
-      });
-    }
-
-    setupSpeechRecognition();
-
-    // ---------- 添削リクエスト ----------
+    // === 添削 ===
     checkBtn.addEventListener("click", async () => {
       const answer = userAnswer.value.trim();
       if (!answer) {
@@ -176,6 +139,11 @@
 
         score.innerHTML = `<span class="${scoreClass}">${scoreValue} / 100</span>`;
         advice.textContent = data.advice;
+
+        // === 添削後の英文を読み上げる ===
+        const utterance = new SpeechSynthesisUtterance(data.corrected);
+        utterance.lang = "en-US";  // 英語音声で読み上げ
+        window.speechSynthesis.speak(utterance);
 
       } catch (error) {
         console.error("Error:", error);
