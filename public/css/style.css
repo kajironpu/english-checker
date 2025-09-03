@@ -34,17 +34,12 @@ p { margin-bottom: 12px; font-size: 18px; }
   word-break: break-word;
 }
 
-textarea {
-  width: 100%;
-  height: 160px;
-  padding: 14px;
-  font-size: 18px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  resize: vertical;
-  transition: border 0.3s ease;
-  margin-bottom: 20px;
-  font-family: inherit;
+textarea { 
+  width: 100%; 
+  height: 3em;        /* 2行分くらいの高さ */
+  margin-bottom: 0.5em; 
+  overflow-y: auto;   /* 文字が増えたらスクロール */
+  resize: vertical;   /* ユーザーが縦に広げられるように optional */
 }
 
 textarea:focus {
